@@ -1,0 +1,23 @@
+{
+  "name": "werpack-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.6.4",
+    "@babel/preset-env": "^7.6.3",
+    "@babel/preset-react": "latest",
+    "@babel/preset-stage-0": "^7.0.0",
+    "@babel/register": "latest",
+    "babel-loader": "latest",
+    "webpack": "latest"
+  },
+  "dependencies": {
+    "@babel/polyfill": "^7.6.0"
+  }
+}

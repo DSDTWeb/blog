@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>React Compoent Props</title>
+  <!-- 加载 React。-->
+  <!-- 注意: 部署时，将 "development.js" 替换为 "production.min.js"。-->
+  <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    function Welcome(props) { // 函数组件
+      return <h3>你好, {props.name}</h3>;
+    }
+    
+    // 提取组件
+    function Avatar(props) { // 评论者头像
+      return (
+        <img
+          className="Avatar"
+          width="50"
+          height="50"
+          src={props.avatarUrl}
+          alt={props.name}
+        />
+      );
+    }
+    function UserInfo(props) { // 评论者基本信息组件
+      return (
+        <div className="UserInfo">
+          <Avatar avatarUrl={props.avatarUrl} name={props.name} />
+          <div className="UserInfo-name">{props.name}</div>
+        </div>
+      );
+    }
+    function Comment(props) { // 评论组件
+      return (
+        <div className="Comment">
+          <UserInfo {...props.author} />
+          <div className="Comment-text">{props.text}</div>
+          <div className="Comment-date">{props.date}</div>
+        </div>
+      );
+    }
+
+    class BaseComponet extends React.Component {
+      unmount (container) {
+        ReactDOM.unmountComponentAtNode(container);
+      }
+    }
+    class App extends BaseComponet { // 组件继承 & 组件组合
+      constructor(props) {
+        super(props);
+        this.state = {
+          comments: [
+            {
+              text: '评论内容',
+              data: (new Date).toString(),
+              author: {
+                name: '评论者名称',
+                avatarUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMS41IC0xMC4yMzE3NCAyMyAyMC40NjM0OCI+CiAgPHRpdGxlPlJlYWN0IExvZ288L3RpdGxlPgogIDxjaXJjbGUgY3g9IjAiIGN5PSIwIiByPSIyLjA1IiBmaWxsPSIjNjFkYWZiIi8+CiAgPGcgc3Ryb2tlPSIjNjFkYWZiIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiPgogICAgPGVsbGlwc2Ugcng9IjExIiByeT0iNC4yIi8+CiAgICA8ZWxsaXBzZSByeD0iMTEiIHJ5PSI0LjIiIHRyYW5zZm9ybT0icm90YXRlKDYwKSIvPgogICAgPGVsbGlwc2Ugcng9IjExIiByeT0iNC4yIiB0cmFuc2Zvcm09InJvdGF0ZSgxMjApIi8+CiAgPC9nPgo8L3N2Zz4K'
+              }
+            }
+          ]
+        }
+      }
+      render() {
+        return (
+          <React.Fragment>
+            <h1>欢迎使用React</h1>
+            <Welcome name="函数组件" />
+            {this.state.comments.map((comment, index) => (
+              <Comment
+                key={index}
+                text={comment.text}
+                date={comment.date}
+                author={comment.author}
+              />
+            ))}
+            <button onClick={e => this.unmount(this.props.container)}>卸载组件</button>
+            <div>
+              <a href="https://github.com/ztMin/notes/tree/master/React/react-component" target="_blank">更多</a>
+            </div>
+          </React.Fragment>
+        )
+      }
+    }
+    let container = document.getElementById('root'),
+      element = <App container={container} />,
+      callback = () => console.log('组件渲染完成 | 组件更新完成');
+    let app = ReactDOM.render(element, container, callback);
+    console.info('app', app);
+  </script>
+</body>
+</html>

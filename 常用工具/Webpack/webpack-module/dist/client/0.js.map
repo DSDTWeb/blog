@@ -1,0 +1,1 @@
+{"version":3,"sources":["webpack:///./src/c.js"],"names":["console","log"],"mappings":";;;;;;;;;;AAAA;AAAe,2EAAY;AACvBA,SAAO,CAACC,GAAR,CAAY,GAAZ;AACH,C","file":"0.js","sourcesContent":["export default function () {\r\n    console.log('c');\r\n}"],"sourceRoot":""}

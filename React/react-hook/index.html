@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>React Compoent Props</title>
+  <!-- 加载 React。-->
+  <!-- 注意: 部署时，将 "development.js" 替换为 "production.min.js"。-->
+  <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const {createContext, forwardRef, createFactory, useState, useEffect, useContext, useRef, useMemo, useCallback, useReducer, useImperativeHandle} = React;
+
+    // 自定义Hook
+    function useScorllTop() {
+      const [scorllTop, setScorllTop] = useState(0);
+      // 执行副作用操作的Hook
+      useEffect(function persistForm() {
+        function onScroll () {
+          setScorllTop(document.documentElement.scrollTop)
+        }
+        document.documentElement.addEventListener('scroll', onScroll);
+        return () => document.documentElement.removeEventListener('scroll', onScroll);
+      }, []); // 只绑定一次
+      return scorllTop
+    }
+    const themes = {
+      light: {
+        foreground: "#000000",
+        background: "#eeeeee"
+      },
+      dark: {
+        foreground: "#ffffff",
+        background: "#222222"
+      }
+    };
+    const ThemeContext = createContext(themes.light);
+    function App(props) {
+      const [count, setCount] = useState(0);
+      const scorllTop = useScorllTop();
+      function init(initialCount) {
+        return {count: initialCount || 0};
+      }
+      const [state, dispatch] = useReducer((state, action) => {
+        switch (action.type) {
+          case 'increment':
+            return {count: state.count + 1};
+          case 'decrement':
+            return {count: state.count - 1};
+          case 'reset':
+            return init(action.payload);
+          default:
+            throw new Error();
+        }
+      }, props.initialCount, init);
+      console.info('app-children', props)
+      return (
+        <ThemeContext.Provider value={themes.dark}>
+          <p>你点击了 {count} 次</p>
+          <p>当前滚动条所在的位置：{scorllTop}</p>
+          <button onClick={() => dispatch({type: 'reset', payload: props.initialCount})}>重置</button>
+          <button onClick={() => setCount(count + 1)}>点击</button>
+          <p>reducer Count: {state.count}</p>
+          <button onClick={() => dispatch({type: 'decrement'})}>reducer -</button>
+          <button onClick={() => dispatch({type: 'increment'})}>reducer +</button>
+          <ContextHook />
+          <CallbackHook />
+          <ImperativeHandleHook />
+          <Factory />
+        </ThemeContext.Provider>
+      );
+    }
+    class Root extends React.PureComponent {
+      render () {
+        console.info('this', this);
+        return (<App {...this.props} />)
+      }
+    }
+    
+    /**---------- useContext Demo Start ----------**/
+    function ContextHook (props) {
+      const theme = useContext(ThemeContext);
+      return (
+        <div>
+          <p>当前ThemeContext内容为：</p>
+          <pre>{JSON.stringify(theme)}</pre>
+        </div>
+      ); 
+    }
+    /**---------- useContext Demo END ----------**/
+
+    /**---------- useCallback Demo Start ----------**/
+    function useEventCallback(fn, dependencies) {
+      const ref = useRef(() => {
+        throw new Error('Cannot call an event handler while rendering.');
+      });
+      useEffect(() => {
+        ref.current = fn;
+      }, [fn, ...dependencies]);
+
+      return useCallback((...arg) => {
+        const fn = ref.current;
+        return fn.apply(null, arg);
+      }, [ref]);
+    }
+    function CallbackHook ({location}) {
+      const [text, updateText] = useState('');
+      const handleSubmit = useEventCallback((expensiveName) => {
+        console.info('提交数据', {expensiveName, text})
+      }, [text])
+      return (
+        <div>
+          <h2>CallbackHook</h2>
+          <input value={text} onChange={e => updateText(e.target.value)} />
+          {useMemo(() => <ExpensiveTree handleSubmit={handleSubmit} />, [handleSubmit])}
+        </div>
+      );
+    }
+    function ExpensiveTree ({handleSubmit}) {
+      const [name, setName] = useState('套餐A');
+      console.info('渲染了套餐组件')
+      return (
+        <div>
+          <div>
+            <label><input type="radio" defaultChecked name="name" onChange={e => e.target.checked && setName('套餐A')} /> 套餐A</label>
+            <label><input type="radio" name="name" onChange={e => e.target.checked && setName('套餐B')} /> 套餐B</label>
+          </div>
+          <div><button onClick={e => handleSubmit({name})}>提交</button></div>
+        </div>
+      );
+    }
+    /**---------- useCallback Demo END ----------**/
+
+    /**---------- useImperativeHandle Demo Start ----------**/
+    function ImperativeHandleHook(props) {
+      const inpRef = useRef();
+      return (
+        <div>
+          <FancyInput ref={inpRef} />
+          <button onClick={e=> inpRef.current.focus()}>设置光标</button>
+        </div>
+      );
+    }
+    function FancyInput(props, ref) {
+      const inputRef = useRef();
+      useImperativeHandle(ref, () => ({
+        focus: () => {
+          inputRef.current.focus();
+        }
+      }));
+      return <input ref={inputRef} />;
+    }
+    FancyInput = forwardRef(FancyInput);
+    /**---------- useImperativeHandle Demo END ----------**/
+
+    let Factorys = createFactory('div');
+    let Factoryss = Factorys({}, 'Factory')
+    console.info('<Factory />', Factorys, Factory)
+    function Factory () {
+      return Factoryss;
+    };
+
+    let container = document.getElementById('root'),
+      element = <Root container={container} />,
+      callback = () => console.log('组件渲染完成 | 组件更新完成');
+    let app = ReactDOM.render(element, container, callback);
+    console.info('app', app, element);
+  </script>
+</body>
+</html>
