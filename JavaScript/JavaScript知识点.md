@@ -283,7 +283,142 @@ console.log(son2.arr);  // 1,2,3
 
 ### typeof
 
-## call、apply代码实现
+一般用来判断基本数据类型，typeof目前只能返回八种判断类型：string、number、boolean、undefined、object、function、symbol、bigint。
+
+```js
+typeof '123'          // string
+typeof 123            // number
+typeof true           // boolean
+typeof Symbol(1)      // symbol
+typeof 111n           // bigint
+typeof undefined      // undefined
+typeof null           // object
+typeof {a: 1, b: 2}   // object
+typeof function() {}  // function
+```
+
+>为什么用typeof判断null会返回object？  
+>JavaScript在底层存储变量的时候，会在变量的机器码的低位1-3位置存储其类型信息。但是对于undefined和null来说，这两个值的信息存储有点特殊。其中undefined用-2^30整数来表示，null的所有机器码都为0。所以typeof在判断null的时候被当作对象。
+
+### instanceof
+
+主要的作用是判断一个实例是否属于某种类型，或者判断一个实例是否是其父类型或者祖先类型的实例。
+
+```js
+/s/g instanceof RegEXP                     // true
+new Date('2019/12/30') instanceof Date     // true
+[1,2,3] instanceof Array                   // true
+[1,2,3] instanceof Object                  // true 数组的原型指向对象的原型对象
+let person = function() {};
+let programmer = function() {};
+programmer.prototype = new person();
+let nicole = new programmer();
+nicole instanceof person                   // true
+nicole instanceof programmer               // true
+```
+
+代码实现instanceof的主要原理是要右边变量的`prototype`在左边变量的原型链上即可。因此，在查找的过程中会遍历左边变量的原型链，直到找到右边变量的prototype，如果查找失败，则会返回false。
+
+```js
+function new_instance_of(leftVaule, rightVaule) {
+  let rightProto = rightVaule.prototype; // 取右表达式的prototype值
+  leftVaule = leftVaule.__proto__;       // 取左表达式的__proto__值
+  while (true) {
+    if (leftVaule === null) {
+        return false;
+      }
+      if (leftVaule === rightProto) {
+        return true;
+      }
+      leftVaule = leftVaule.__proto__;
+  }
+}
+```
+
+### Object.prototype.toString
+
+toString是Object原型对象上的一个方法，该方法默认返回其调用者的具体类型，更严格的讲，是 toString运行时this指向的对象类型，返回的类型格式为`[object xxxx]`，xxxx时具体的数据类型，基本上所有对象的类型都可以通过这个方法获取到
+
+```js
+Object.prototype.toString.call('') ;              // [object String]
+Object.prototype.toString.call(1) ;               // [object Number]
+Object.prototype.toString.call(true) ;            // [object Boolean]
+Object.prototype.toString.call(undefined) ;       // [object Undefined]
+Object.prototype.toString.call(null) ;            // [object Null]
+Object.prototype.toString.call(new Function()) ;  // [object Function]
+Object.prototype.toString.call(new Date()) ;      // [object Date]
+Object.prototype.toString.call([]) ;              // [object Array]
+Object.prototype.toString.call(new RegExp()) ;    // [object RegExp]
+Object.prototype.toString.call(new Error()) ;     // [object Error]
+Object.prototype.toString.call(document) ;        // [object HTMLDocument]
+Object.prototype.toString.call(window) ;          // [object global] window是全局对象global的引用
+```
+
+>注意：必须通过Object.prototype.toString.call来获取，而不能通过需要判断的对象的toString来获取，大部分对象都实现了自身的toString方法，这样会导致Object.toString的查找被终止，因此要用call来强制执行Object.toString方法。
+
+## call、apply、bind代码实现
+
+### call模拟实现
+
+```js
+Function.prototype.myCall = function (obj, ...args) {
+  // 当指定的this值不存在时，则指向全局对象
+  let context = obj || window;
+  // 将函数赋值给要指向的对象 fn只是例子上写的 不考虑obj上有相同值的情况
+  context.fn = this;
+  // 执行函数 并将结果保存到 result
+  let result = context.fn(...args);
+  // 删除赋值
+  delete context.fn;
+  return result;
+}
+```
+
+### apply模拟实现
+
+```js
+Function.prototype.myApply = function (obj, args) {
+  // 当指定的this值不存在时，则指向全局对象
+  let context = obj || window;
+  // 将函数赋值给要指向的对象
+  context.fn = this;
+  let result;
+  if (args instanceof Array) {
+    result = context.fn(...args);
+  } else {
+    result = context.fn();
+  }
+  // 删除赋值
+  delete context.fn;
+  return result;
+}
+```
+
+### bind模拟实现
+
+```js
+Function.prototype.myBind = function (context) {
+  // 如果bind不是函数 则报错
+  if (typeof this !== "function") {
+    throw new Error("no function");
+  }
+  // Array.prototype.slice.call(arguments)能将具有length属性的对象(key值为数字)转成数组
+  let args = Array.prototype.slice.call(arguments, 1);
+  let self = this;
+  let f = function () {
+    let fArgs = args.concat(Array.prototype.slice.call(arguments));
+    if (this instanceof f) {
+      return self.apply(this, fArgs);
+    } else {
+      return self.apply(context, fArgs);
+    }
+  }
+  if(this.prototype) {
+    f.prototype = this.prototype;
+  }
+  return f;
+}
+```
 
 ## new做了什么
 
