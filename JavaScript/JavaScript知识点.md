@@ -407,6 +407,7 @@ Function.prototype.myBind = function (context) {
   let self = this;
   let f = function () {
     let fArgs = args.concat(Array.prototype.slice.call(arguments));
+    // 当bind的回调函数拿来当另外一个函数的构造函数时， this指向重新修改
     if (this instanceof f) {
       return self.apply(this, fArgs);
     } else {
