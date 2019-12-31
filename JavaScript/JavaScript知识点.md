@@ -402,9 +402,9 @@ Function.prototype.myBind = function (context) {
   if (typeof this !== "function") {
     throw new Error("no function");
   }
-  // Array.prototype.slice.call(arguments)能将具有length属性的对象(key值为数字)转成数组
   let args = Array.prototype.slice.call(arguments, 1);
   let self = this;
+  // 这个回调的部分不是很懂
   let f = function () {
     let fArgs = args.concat(Array.prototype.slice.call(arguments));
     // 当bind的回调函数拿来当另外一个函数的构造函数时， this指向重新修改
@@ -420,6 +420,11 @@ Function.prototype.myBind = function (context) {
   return f;
 }
 ```
+
+>__将类数组转换成数组__  
+>`Array.prototype.slice.call`：类数组的原型对象是Object.prototype，并没有slice方法。通过call(obj)不仅改变了this指向，还是得类数组对象继承了Array.prototype中的slice方法。slice方法可以将一个类数组对象、集合转换成新数组。  
+>`Array.from`：将一个类数组对象或者可遍历对象转换成一个真正的数组。  
+>`[...arguments]`：结构展开字面量赋值到数组中。  
 
 ## new做了什么
 
