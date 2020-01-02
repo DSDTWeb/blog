@@ -6,9 +6,9 @@
 
 ### 原型
 
-* JavaScript中所有对象都有一个内置属性`__proto__`（部分浏览器为`[[prototype]]`），指向创建这个对象的函数（即构造函数）constructor的prototype。用来构成原型链，同样用于实现原型继承。
-
 * JavaScript的函数对象，在创建之后除了__proto__外，都会拥有`prototype`属性，这个属性指向函数的原型对象。用来实现基于原型的继承与属性的共享。
+
+* JavaScript中所有对象都有一个内置属性`__proto__`（部分浏览器为`[[prototype]]`），指向创建这个对象的函数（即构造函数）constructor的prototype。用来构成原型链，同样用于实现原型继承。
 
 ```js
 function Person() {}
@@ -75,7 +75,7 @@ console.log(son1.arr);  // 1,2,3,4
 
 * 无法向父级构造函数传参
 
-### 借用结构函数继承
+### 借用构造函数继承
 
 #### 介绍
 
@@ -279,6 +279,52 @@ console.log(son2.arr);  // 1,2,3
 >寄生式：原生式的增强  
 >寄生组合式：寄生式+组合，解决了各种问题，只是代码稍微复杂  
 
+### 从设计思想上谈谈继承本身的问题
+
+假如现在有不同品牌的车，每辆车都有drive、music、addOil这三个方法。
+
+```js
+class Car{
+  constructor(id) {
+    this.id = id;
+  }
+  drive(){
+    console.log("drive");
+  }
+  music(){
+    console.log("music")
+  }
+  addOil(){
+    console.log("addOil")
+  }
+}
+class otherCar extends Car{}
+```
+
+现在可以实现车的功能，并且以此去扩展不同的车。但是问题来了，新能源汽车也是车，但是它并不需要addOil(加油)。如果让新能源汽车的类继承Car的话，也是有问题的，俗称"大猩猩和香蕉"的问题。大猩猩手里有香蕉，但是我现在明明只需要香蕉，却拿到了一只大猩猩。也就是说加油这个方法，我现在是不需要的，但是由于继承的原因，也给到子类了。
+
+> 继承的最大问题在于：无法决定继承哪些属性，所有属性都要继承
+
+一方面父类是无法描述所有子类的细节情况的，为了不同的子类特性去增加不同的父类，`代码势必会大量重复`，另一方面一旦子类有所变动，父类也要进行相应的更新，`代码的耦合性太高`，维护性不好。
+
+如何来解决继承的诸多问题呢？
+
+用组合，这也是当今编程语法发展的趋势，比如golang完全采用的是面向组合的设计方式。顾名思义，面向组合就是先设计一系列零件，然后将这些零件进行拼装，来形成不同的实例或者类。
+
+```js
+function drive(){
+  console.log("drive");
+}
+function music(){
+  console.log("music")
+}
+function addOil(){
+  console.log("addOil")
+}
+let car = compose(drive, music, addOil);
+let newEnergyCar = compose(drive, music);
+```
+
 ## 类型判断原理
 
 ### typeof
@@ -356,83 +402,291 @@ Object.prototype.toString.call(window) ;          // [object global] window是�
 
 >注意：必须通过Object.prototype.toString.call来获取，而不能通过需要判断的对象的toString来获取，大部分对象都实现了自身的toString方法，这样会导致Object.toString的查找被终止，因此要用call来强制执行Object.toString方法。
 
-## call、apply、bind代码实现
+## 数据类型转换
 
-### call模拟实现
+1. [] == ![]结果是什么？为什么？
+    ==中，左右两边都需要转换成数字然后进行比较。[\]转换为数字0，![\]首先转换为布尔值，由于[\]作为一个引用类型转为布尔值true，因此![\]为false，进而转换为数字0。
+    0 == 0，结果为true。
+2. JavaScript中类型转化有哪几种？
+类型转换有三种：
+    * 转换为数字
+    * 转换成布尔值
+    * 转换成字符串
+    ![数据类型转换](image/data_conversion.png?raw=true)
+    > 注意"Boolean 转字符串"这行结果指的是 true 转字符串的例子
+3. == 和 ===有什么区别？
+    >===叫做严格相等，是指：左右两边不仅值要相等，类型也要相等，例如'1'===1的结果是false，因为一边是string，另一边是number。
 
-```js
-Function.prototype.myCall = function (obj, ...args) {
-  // 当指定的this值不存在时，则指向全局对象
-  let context = obj || window;
-  // 将函数赋值给要指向的对象 fn只是例子上写的 不考虑obj上有相同值的情况
-  context.fn = this;
-  // 执行函数 并将结果保存到 result
-  let result = context.fn(...args);
-  // 删除赋值
-  delete context.fn;
-  return result;
-}
-```
+    `==`不像`===`那样严格，对于一般情况，只要值相等，就返回true，但==还涉及一些类型转换，它的转换规则如下
+    * 两边的类型是否相同，相同的话就比较值的大小，例如1==2，返回false
+    * 判断的是否是null和undefined，是的话就返回true
+    * 判断的类型是否是String和Number，是的话，把String类型转换成Number，再进行比较
+    * 判断其中一方是否是Boolean，是的话就把Boolean转换成Number，再进行比较
+    * 如果其中一方为Object，且另一方为String、Number或者Symbol，会将Object转换成字符串，再进行比较
 
-### apply模拟实现
+4. 对象转原始数据是根据什么流程运行的？
+    对象转原始类型，会调用内置的[ToPrimitive]函数，对于该函数而言，其逻辑如下：
+    * 如果Symbol.toPrimitive()方法，优先调用再返回
+    * 调用valueOf()，如果转换为原始类型，则返回
+    * 调用toString()，如果转换为原始类型，则返回
+    * 如果都没有返回原始类型，会报错
 
-```js
-Function.prototype.myApply = function (obj, args) {
-  // 当指定的this值不存在时，则指向全局对象
-  let context = obj || window;
-  // 将函数赋值给要指向的对象
-  context.fn = this;
-  let result;
-  if (args instanceof Array) {
-    result = context.fn(...args);
-  } else {
-    result = context.fn();
-  }
-  // 删除赋值
-  delete context.fn;
-  return result;
-}
-```
-
-### bind模拟实现
-
-```js
-Function.prototype.myBind = function (context) {
-  // 如果bind不是函数 则报错
-  if (typeof this !== "function") {
-    throw new Error("no function");
-  }
-  let args = Array.prototype.slice.call(arguments, 1);
-  let self = this;
-  // 这个回调的部分不是很懂
-  let f = function () {
-    let fArgs = args.concat(Array.prototype.slice.call(arguments));
-    // 当bind的回调函数拿来当另外一个函数的构造函数时， this指向重新修改
-    if (this instanceof f) {
-      return self.apply(this, fArgs);
-    } else {
-      return self.apply(context, fArgs);
+    ```js
+    let obj = {
+      value: 3,
+      valueof() {
+        return 4;
+      },
+      toString() {
+        return '5'
+      },
+      [Symbol.toPrimitive]() {
+        return 6
+      }
     }
-  }
-  if(this.prototype) {
-    f.prototype = this.prototype;
-  }
-  return f;
-}
-```
-
->__将类数组转换成数组__  
->`Array.prototype.slice.call`：类数组的原型对象是Object.prototype，并没有slice方法。通过call(obj)不仅改变了this指向，还是得类数组对象继承了Array.prototype中的slice方法。slice方法可以将一个类数组对象、集合转换成新数组。  
->`Array.from`：将一个类数组对象或者可遍历对象转换成一个真正的数组。  
->`[...arguments]`：结构展开字面量赋值到数组中。  
+    console.log(obj + 1); // 7
+    ```
 
 ## new做了什么
 
-## 作用域和作用域链
+1. 创建一个空的简单JavaScript对象（即{}）；
+2. 链接该对象（即设置该对象的构造函数）到另一个对象 ；
+3. 将步骤1新创建的对象作为this的上下文 ；
+4. 如果该函数没有返回对象，则返回this。
+
+```js
+function myNew(func, ...args) {
+  const result = new Object(); // 创建空对象
+  result.__proto__ = func.prototype // 第二条,继承原型上的属性或方法
+  func.apply(result, args) //将构造函数func的this指向result对象，这样result就可以访问到func中的属性或方法
+  if(typeof res === 'object') return res;
+  return obj;
+}
+```
+
+## JS事件轮询机制
+
+### 概念
+
+事件轮询是"一个解决和处理外部事件时将它们转换为回调函数的调用的实体"。JavaScript语言的一大特点就是单线程，同一个时间只能做一件事。所有任务都需要排队，前一个任务结束，才会执行后一个任务。
+
+### 任务队列
+
+"任务队列"是一个先进先出的数据结构，排在前面的事件，优先被主线程读取。主线程的读取过程基本上是自动的，只要执行栈一清空，"任务队列" 上第一位的事件就会自动进入主线程。一种是同步任务，另一种是异步任务。
+同步任务指的是，在主线程上排队执行的任务，只有前一个任务执行完毕，才能执行后一个任务。异步任务指的是，不进入主线程，而进入"任务队列"的任务，只有"任务队列"通知主线程，某个异步任务可以执行了，该任务才会进入主线程执行。
+
+### 异步执行机制
+
+JavaScript的异步是通过回调函数实现的，在主线程执行完当前的任务栈，主线程空闲后轮询任务队列，并将任务队列中的任务取出来执行。在浏览器中，不同的异步操作添加到的任务队列的时机也不同
+
+* DOM Binding模块进行事件触发时处理，将回调函数添加到任务队列中
+
+* timer模块进行延时处理，当时间到达的时候，才会将回调函数添加到任务队列中
+
+* network模块处理网络请求，当网络请求完成返回时，才会将回调函数添加到队列中
+
+所有同步任务都在主线程上执行，形成一个执行栈。主线程外，还存在以一个"任务队列"，只要异步任务有了运行结果，就在"任务队列"中放置一个事件。当全部同步任务执行完毕，就会不断轮询"任务队列"，对应的异步任务结束等待状态进入任务栈，开始执行。
+
+![原型链](image/event_loop.gif?raw=true)
+
+### 宏任务和微任务
+
+普通任务队列和延迟队列`setTimeout`，`setInterval`中的任务，都属于宏任务。对于每个宏任务而言，其内部都有一个微任务队列。在每一个宏任务中定义一个微任务队列，当该宏任务执行完成，会检查其中的微任务队列，如果为空则直接执行下一个宏任务，如果不为空，则依次执行微任务，执行完成才去执行下一个宏任务。
+常见的微任务有MutationObserver、Promise.then(或.reject) 以及以 Promise 为基础开发的其他技术(比如fetch API), 还包括 V8 的垃圾回收过程。
+
+```js
+Promise.resolve().then(()=>{
+  console.log('Promise1');
+  setTimeout(()=>{
+    console.log('setTimeout2');
+  },0);
+});
+setTimeout(()=>{
+  console.log('setTimeout1');
+  Promise.resolve().then(()=>{
+    console.log('Promise2');
+  });
+},0);
+console.log('start');
+// start Promise1 setTimeout1 Promise2 setTimeout2
+```
+
+### 任务队列优先级
+
+process.nextTick > promise.then > setTimeout > setImmediate
+
+```js
+async function async1() {
+  console.log('async1 start');
+  await async2();
+  console.log('async1 end');
+}
+async function async2() {
+  console.log('async2');
+}
+console.log('script start');
+setTimeout(() => {
+  console.log('setTimeout0');
+}, 0);
+setTimeout(() => {
+  console.log('setTimeout3');
+}, 3);
+setImmediate(() => {
+  console.log('setImmediate');
+});
+process.nextTick(() => {
+  console.log('nextTick');
+});
+async1();
+new Promise((resolve) => {
+  console.log('promise1');
+  resolve();
+  console.log('promise2');
+}).then(() => {
+  console.log('promise3');
+});
+console.log('script end');
+// script start
+// nextTick
+// async1 start
+// async2
+// promise1
+// promise2
+// script end
+// async end
+// parmise3
+// setImmediate
+// setTimeout0
+// setTimeout3
+```
+
+## this指针
+
+### 显示绑定
+
+使用call、apply、bind可以进行显示绑定。
+
+1. call模拟实现
+
+    ```js
+    Function.prototype.myCall = function (obj, ...args) {
+      // 当指定的this值不存在时，则指向全局对象
+      let context = obj || window;
+      // 将函数赋值给要指向的对象 fn只是例子上写的 不考虑obj上有相同值的情况
+      context.fn = this;
+      // 执行函数 并将结果保存到 result
+      let result = context.fn(...args);
+      // 删除赋值
+      delete context.fn;
+      return result;
+    }
+    ```
+
+2. apply模拟实现
+
+    ```js
+    Function.prototype.myApply = function (obj, args) {
+      // 当指定的this值不存在时，则指向全局对象
+      let context = obj || window;
+      // 将函数赋值给要指向的对象
+      context.fn = this;
+      let result;
+      if (args instanceof Array) {
+        result = context.fn(...args);
+      } else {
+        result = context.fn();
+      }
+      // 删除赋值
+      delete context.fn;
+      return result;
+    }
+    ```
+
+3. bind模拟实现
+
+    ```js
+    Function.prototype.myBind = function (context) {
+      // 如果bind不是函数 则报错
+      if (typeof this !== "function") {
+        throw new Error("no function");
+      }
+      let args = Array.prototype.slice.call(arguments, 1);
+      let self = this;
+      // 这个回调的部分不是很懂
+      let f = function () {
+        let fArgs = args.concat(Array.prototype.slice.call(arguments));
+        // 当bind的回调函数拿来当另外一个函数的构造函数时， this指向重新修改
+        if (this instanceof f) {
+          return self.apply(this, fArgs);
+        } else {
+          return self.apply(context, fArgs);
+        }
+      }
+      if(this.prototype) {
+        f.prototype = this.prototype;
+      }
+      return f;
+    }
+    ```
+
+    >__将类数组转换成数组__  
+    >`Array.prototype.slice.call`：类数组的原型对象是Object.prototype，并没有slice方法。通过call(obj)不仅改变了this指向，还是得类数组对象继承了Array.prototype中的slice方法。slice方法可以将一个类数组对象、集合转换成新数组。  
+    >`Array.from`：将一个类数组对象或者可遍历对象转换成一个真正的数组。  
+    >`[...arguments]`：结构展开字面量赋值到数组中。  
+
+### 隐式绑定
+
+1. 全局上下文
+  全局上下文默认this指向window，严格模式下指向undefined。
+2. 直接调用函数
+  
+  ```js
+  let obj = {
+    a: function () {
+      console.log(this);
+    }
+  };
+  let func = obj.a;
+  func();
+  ```
+
+  这中情况是直接调用，this相当于全局上下文的情况。
+3. 对象.方法形式调用
+  
+  ```js
+  obj.a();
+  ```
+
+  这就是`对象.方法`的情况，this指向这个对象。
+4. DOM事件绑定
+  `on+事件`和`addEventerListener`中this默认指向绑定事件的元素。  
+  IE比较奇异，使用attachEvent，this默认指向window。
+5. new + 构造函数
+  钩爪函数中的this指向实例对象。
+6. 箭头函数
+  箭头函数没有this，因此也不能绑定（使用显示绑定也不能改变this指向）。里面的this会指向当前最近的非箭头函数的this，找不到就是指向window（严格模式下的undefined）。
+  
+  ```js
+  let obj = {
+    a: function () {
+      let arrow = () => {
+        console.log(this);
+      }
+      arrow();
+    }
+  };
+  obj.a(); // 找到最近的非箭头函数a，a绑定的是obj，因此箭头函数中的this是obj
+  ```
 
 ## 闭包
 
-## JS任务轮询机制
+### 作用域和作用域链
+
+### 什么是闭包
+
+### 闭包的产生原因
+
+### 闭包有哪些表现形式
 
 ## 严格模式
 
