@@ -412,7 +412,7 @@ Object.prototype.toString.call(window) ;          // [object global] window是�
     * 转换为数字
     * 转换成布尔值
     * 转换成字符串
-    ![数据类型转换](image/data_conversion.png?raw=true)
+    ![数据类型转换](image/data_conversion.jpg?raw=true)
     > 注意"Boolean 转字符串"这行结果指的是 true 转字符串的例子
 3. == 和 ===有什么区别？
     >===叫做严格相等，是指：左右两边不仅值要相等，类型也要相等，例如'1'===1的结果是false，因为一边是string，另一边是number。
