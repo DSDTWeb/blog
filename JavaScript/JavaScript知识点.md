@@ -51,7 +51,7 @@ Son.prototype.getSonValue = function() {
   return this.sonProp;
 }
 // 创建子级的实例对象
-var son = new Son();
+let son = new Son();
 console.log(son.getFatherValue());  // true
 ```
 
@@ -65,9 +65,9 @@ function Father() {
 }
 function Son() {}
 Son.prototype = new Father();
-var son1 = new Son();
+let son1 = new Son();
 console.log(son1.arr);  // 1,2,3
-var son2 = new Son();
+let son2 = new Son();
 son2.arr.push(4);
 console.log(son2.arr);  // 1,2,3,4
 console.log(son1.arr);  // 1,2,3,4
@@ -113,9 +113,9 @@ function Father(name) {
 function Son(name) {
   Father.call(this, name);
 }
-var son1 = new Son("son1");
+let son1 = new Son("son1");
 console.log(son1.name);  // son1
-var son2 = new Son("son2");
+let son2 = new Son("son2");
 console.log(son2.name);  // son2
 ```
 
@@ -556,13 +556,13 @@ new Promise((resolve) => {
 });
 console.log('script end');
 // script start
-// nextTick
 // async1 start
 // async2
 // promise1
 // promise2
 // script end
-// async end
+// nextTick
+// async1 end
 // parmise3
 // setImmediate
 // setTimeout0
@@ -691,12 +691,379 @@ console.log('script end');
 
 ### 作用域和作用域链
 
+#### 什么是作用域
+
+在一定的空间里可以对数据进行读写操作，这个空间就是数据的作用域。变量的作用域分为两种：全局作用域和局部作用域。
+
+* 全局作用域：最外层函数定义的变量拥有全局作用域，对任何内部函数都是可以访问的。
+* 局部作用域： 局部作用域一般只在固定的代码片段可以访问到，而对于函数外部是无法访问的。
+
+在ES6之前，只有两种作用域：全局作用域和函数作用域。在ES6之后，新增了一种作用域：块级作用域。
+
+#### 什么是作用域链
+
+当访问一个变量时，解释器会首先在当前作用域查找标示符，如果没有找到，就去父作用域找，直到找到该变量的标示符或者不在父作用域中，这就是作用域链
+
 ### 什么是闭包
 
-### 闭包的产生原因
+闭包是指有权访问另外一个函数作用域中的变量的函数。（其中变量，指在函数中使用的，但既不是函数参数arguments也不是函数的局部变量的变量，其实就是另外一个函数作用域中的变量。）
 
 ### 闭包有哪些表现形式
 
+* 返回一个函数。
+* 函数作为参数传递。
+* 在异步函数中使用了回调函数。
+* IIFE（立即执行函数表达式），保存了全局作用域和当前函数的作用域。
+
+解决下方代码循环问题
+
+```js
+for(var i = 1; i <= 5; i ++){
+  setTimeout(function timer(){
+    console.log(i)
+  }, 0)
+}
+```
+
+* 利用IIFE当每次for循环的时候，把此时的i变量传递到定时器中
+
+```js
+for(var i = 1;i <= 5;i++){
+  (function(j){
+    setTimeout(function timer(){
+      console.log(j)
+    }, 0)
+  })(i)
+}
+```
+
+* 给定时器传入第三个参数，作为timer函数的第一个函数参数
+
+```js
+for(var i=1;i<=5;i++){
+  setTimeout(function timer(j){
+    console.log(j)
+  }, 0, i)
+}
+```
+
+* 使用ES6的let
+
+```js
+for(let i = 1; i <= 5; i++){
+  setTimeout(function timer(){
+    console.log(i)
+  },0)
+}
+```
+
 ## 严格模式
 
+严格模式可以应用到整个脚本或个别脚本。不要在封闭的大括弧`{}`内这样做，在这样的上下文中这么做是没有效果的。
+为整个脚本文件开启严格模式，需要在所有语句之前放一个特定语句 "use strict"
+
+```js
+// 整个脚本都开启严格模式的语法
+"use strict";
+let v = "Hi!  I'm a strict mode script!";
+```
+
+```js
+function strict() {
+  // 函数级别严格模式语法
+  'use strict';
+  function nested() {
+    return "And so am I!";
+  }
+  return "Hi!  I'm a strict mode function!  " + nested();
+}
+```
+
+### 严格模式中的变化
+
+1. 将过失错误转成异常
+    * 无法再意外使用创建全局变量。
+
+      ```js
+      "use strict";
+      mistypedVariable = 17; // 这一行代码会抛出 ReferenceError
+      ```
+
+    * 会使引起静默失败(不报错也没有任何效果)的赋值操作抛出异常。
+
+      ```js
+      "use strict";
+      // 给不可写属性赋值
+      let obj1 = {};
+      Object.defineProperty(obj1, "x", { value: 42, writable: false });
+      obj1.x = 9; // 抛出TypeError错误
+      // 给只读属性赋值
+      let obj2 = { get x() { return 17; } };
+      obj2.x = 5; // 抛出TypeError错误
+      // 给不可扩展对象的新属性赋值
+      let fixed = {};
+      Object.preventExtensions(fixed);
+      fixed.newProp = "ohai"; // 抛出TypeError错误
+      ```
+
+    * 函数参数名唯一，正常模式下，最后一个重名参数会覆盖之前的重名参数，之前的参数任可以通过argumnets[i]来访问。
+
+      ```js
+      function sun (a, a, c) { // 语法错误
+        "use strict"
+        return a + a + c;
+      }
+      ```
+
+    * 严格模式禁止八进制数字语法，ECMAScript并不包含八进制语法，但是浏览器支持以零开头的八进制语法。在ES6中支持以`0o`的前缀来表示八进制数。
+
+      ```js
+      "use strict";
+      let a = 0o15 // ES6八进制
+      let b = 015 // 语法错误
+      ```
+
+    * ES6中的严格模式禁止设置原始类型值的属性，不采用严格模式，设置属性将会简单忽略，采用严格模式将会抛出TypeError错误。
+
+      ```js
+      "use strict";
+      false.true = "";              //TypeError
+      "a".b = "c";      //TypeError
+      ```
+
+2. 简化变量的使用
+    严格模式简化了代码中变量名字映射到变量定义的方式。JavaScript有些情况会使得代码中的名字到变量定义基本映射指回在运行时才会产生，严格模式移除了大多数这种情况的发生。
+
+    * 禁止使用with
+
+      ```js
+      "use strict";
+      let x = 17;
+      with (obj) { // !!! 语法错误
+        // 如果不运行代码，我们无法知道，因此，这种代码让引擎无法进行优化，速度也就会变慢。
+        x;
+      }
+      ```
+
+    * eval不再为上层范围（注：包围eval代码块的范围）引入新变量
+
+      ```js
+      var x = 17;
+      var evalX = eval("'use strict'; var x = 42; x");
+      console.assert(x === 17);
+      console.assert(evalX === 42);
+      ```
+
+    * 禁止删除声明变量
+
+      ```js
+      "use strict";
+      let x;
+      delete x; // !!! 语法错误
+      eval("let y; delete y;"); // !!! 语法错误
+      ```
+
+3. 让eval和arguments变的简单
+  严格模式让arguments和eval少了一些奇怪的行为。
+    * 名称eval和arguments不能通过程序语法被绑定或赋值
+
+      ```js
+      "use strict";
+      eval = 17;
+      arguments++;
+      ++eval;
+      let obj = { set p(arguments) { } };
+      let eval;
+      try { } catch (arguments) { }
+      function x(eval) { }
+      function arguments() { }
+      let y = function eval() { };
+      let f = new Function("arguments", "'use strict'; return 17;");
+      ```
+
+    * 参数的值不会随arguments对象的值的改变而变化
+
+      ```js
+      function f(a) {
+        "use strict";
+        a = 42;
+        return [a, arguments[0]];
+      }
+      let pair = f(17);
+      console.log(pair[0] === 42);
+      console.log(pair[1] === 17);
+      ```
+
+    * 不再支持`arguments.callee`
+
+      ```js
+      "use strict";
+      let f = function() { return arguments.callee; };
+      f(); // 抛出类型错误
+      ```
+
+4. "安全的"JavaScript
+    * this传递给一个函数的值不会被强制转换为一个对象
+
+      ```js
+      "use strict";
+      function fun() { return this; }
+      console.assert(fun() === undefined);
+      console.assert(fun.call(2) === 2);
+      console.assert(fun.apply(null) === null);
+      console.assert(fun.call(undefined) === undefined);
+      console.assert(fun.bind(true)() === true);
+      ```
+
+    * fun.caller和fun.arguments都是不可删除的属性而且在存值、取值时都会报错
+
+      ```js
+      function fun() {
+        "use strict";
+        restricted.caller;    // 抛出类型错误
+        restricted.arguments; // 抛出类型错误
+      }
+      ```
+
+5. 为未来的ECMAScript铺路
+    * 保留关键字,包括`implements`，`interface`，`let`，`package`，`private`，`protected`，`public`，`static`和`yield`
+
+    * 禁止了不在脚本或者函数层面上的函数声明
+
+      ```js
+      "use strict";
+      if (true) {
+        function f() { } // !!! 语法错误
+        f();
+      }
+      for (var i = 0; i < 5; i++) {
+        function f2() { } // !!! 语法错误
+        f2();
+      }
+      function baz() { // 合法
+        function eit() { } // 同样合法
+      }
+      ```
+
 ## 事件捕获和冒泡
+
+事件捕获：当鼠标点击或者触发dom事件时（被触发dom事件的这个元素被叫作事件源），浏览器会从根节点 =>事件源（由外到内）进行事件传播。IE8及更早的版本不支持事件捕获。
+事件冒泡：事件源 =>根节点（由内到外）进行事件传播。不支持事件冒泡的事件有：blur、focus、load、unload
+
+DOM2级事件规定的事件流包括三个阶段：
+
+* 事件捕获阶段
+* 处于目标阶段
+* 事件冒泡阶段
+
+![原型链](image/capturing_bubbling.png?raw=true)
+
+1. 当处于目标阶段，没有捕获与冒泡之分，执行顺序会按照`addEventListener`的添加顺序决定，先添加先执行。
+2. 使用`stopPropagation()`取消事件传播时，事件不会被传播给下一个节点，但是，同一节点上的其他监听还是会被执行。
+
+    ```js
+    // list 的捕获
+    $list.addEventListener('click', (e) => {
+      console.log('list capturing');
+      e.stopPropagation();
+    }, true)
+    // list 捕获 2
+    $list.addEventListener('click', (e) => {
+      console.log('list capturing2');
+    }, true)
+    // list capturing
+    // list capturing2
+    ```
+
+    >如果想要同一层级的listener也不执行，可以使用`stopImmediatePropagation()`;
+
+3. `preventDefault()`只是阻止默认行为，跟事件传播一点关系都没有。
+4. 一旦发起了preventDefault()，在之后传递下去的事件里面也会有效果。
+
+### 事件处理程序
+
+1. HTML事件处理程序
+    每种事件都可以使用一个与相应事件处理程序同名的HTML特性来指定，特性的值可以是能够执行的JavaScript代码，也可以是函数。在函数内部，this值等于事件的目标元素。
+
+    ```html
+    <button onclick="alert('hello')">按钮1</button>
+    <button onclick="doSomething()">按钮2</button>
+    ```
+
+    缺陷：
+    * 时差问题：用户在HTML元素一出现就触发相应的事件，如果JavaScript还未加载完成，则可能发生报错。为此HTML事件处理程序都会封装在一个try-catch块中。
+    * 扩展事件处理程序的作用域链在不同浏览器导致不同的结果。
+    * HTML代码和JavaScript代码紧密耦合。
+
+2. DOM0级事件处理程序
+    通过JavaScript指定事件处理程序的传统方式，将一个函数赋值给一个事件处理程序属性。使用DOM0级方法指定的事件处理程序被认为是元素的方法，因此this引用当前元素。
+
+    ```js
+    let btn = document.getElementById('btn');
+    btn.onclick = function () {
+      alert('hello');
+    }
+    btn.onclick = null;
+    ```
+
+    可以通过将事件处理程序设置为null来删除DOM0级方法指定的事件处理程序。
+    缺陷：
+    * 当写两个相同的事件处理程序时，后面的会覆盖前面的。
+    * 不能控制事件流是冒泡还是捕获。
+
+3. DOM2级事件处理程序
+    DOM2级事件定义了两种方法，用于指定和删除事件处理程序：`addEventListener()`和`removeEventListener()`。接受三个参数：事件名称，事件处理程序，布尔值（false表示使用冒泡机制，true表示捕获机制，默认是false）。
+
+    ```js
+    let btn=document.getElementById("btn");
+    btn.addEventListener('click', hello，false);
+    btn.removeEventListener('click', hello，false);
+    function hello(){
+      alert("hello");
+    }
+    ```
+
+    同一个元素可以绑定多个事件处理程序，`removeEventLister()`移除监听需要传入和添加事件处理程序时一摸一样的参数，因此匿名函数无法移除。
+
+4. IE事件处理程序
+    IE事件定义了两个方法，用于指定和删除事件处理程序：`attachEvent()`和`detachEvent()`。接受两个参数：事件名称，事件处理程序。由于IE8及跟早的版本只支持冒泡，所以attachEvent添加的事件都会被添加到冒泡阶段。
+
+    ```js
+    let btn=document.getElementById("btn");
+    btn.attachEvent('onclick',hello);
+    btn.detachEvent('onclick',hello);
+    function hello(){
+      alert("hello");
+    }
+    ```
+
+    attachEvent与addEventListener的区别：
+    * attachEvent添加的的事件名称需要加on，addEventListener则不要
+    * 作用域不同，attachEvent事件处理程序会在全局作用于下运行，this指向window。
+
+5. 跨浏览器事件处理程序
+    保证多浏览器下一致的运行，只需要关注冒泡阶段。视情况分别使用DOM2、IE方法、DOM0级方法来添加和移除事件。
+    * 先检查传入元素是否存在DOM2方法
+    * 再检查传入的元素是否存在IE方法
+    * 最后检查传入的元素是否存在DOM0级方法。
+
+    ```js
+    let EventUtil = {
+      addHandler:function(element, type, handler) {
+        if (element.addEventListener)
+          element.addEventListener(type, handler, false);
+        else if (element.attachEvent)
+          element.attachEvent("on" + type, handler);
+        else
+          element["on" + type] = handler;
+      },
+      removeHandler:function(element, type, handler) {
+        if (element.removeEventListener)
+          element.removeEventListener(type, handler, false);
+        else if (element.detachEvent)
+          element.detachEvent(“on” + type, handler);
+        else
+          element["on" + type] = null;
+      }
+    }
+    ```
