@@ -645,34 +645,34 @@ console.log('script end');
 
 ### 隐式绑定
 
-1. 全局上下文
+1. 全局上下文  
   全局上下文默认this指向window，严格模式下指向undefined。
 2. 直接调用函数
   
-  ```js
-  let obj = {
-    a: function () {
-      console.log(this);
-    }
-  };
-  let func = obj.a;
-  func();
-  ```
+    ```js
+    let obj = {
+      a: function () {
+        console.log(this);
+      }
+    };
+    let func = obj.a;
+    func();
+    ```
 
-  这中情况是直接调用，this相当于全局上下文的情况。
+    这中情况是直接调用，this相当于全局上下文的情况。
 3. 对象.方法形式调用
-  
-  ```js
-  obj.a();
-  ```
 
-  这就是`对象.方法`的情况，this指向这个对象。
+    ```js
+    obj.a();
+    ```
+
+    这就是`对象.方法`的情况，this指向这个对象。
 4. DOM事件绑定
   `on+事件`和`addEventerListener`中this默认指向绑定事件的元素。  
   IE比较奇异，使用attachEvent，this默认指向window。
-5. new + 构造函数
-  钩爪函数中的this指向实例对象。
-6. 箭头函数
+5. new + 构造函数  
+  构造函数中的this指向实例对象。
+6. 箭头函数  
   箭头函数没有this，因此也不能绑定（使用显示绑定也不能改变this指向）。里面的this会指向当前最近的非箭头函数的this，找不到就是指向window（严格模式下的undefined）。
   
   ```js
