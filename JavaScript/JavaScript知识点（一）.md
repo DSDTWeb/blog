@@ -1,4 +1,4 @@
-# JavaScript知识点
+# JavaScript知识点(一)
 
 汇集部分常见的JavaScript知识点
 
@@ -458,9 +458,9 @@ Object.prototype.toString.call(window) ;          // [object global] window是�
 function myNew(func, ...args) {
   const result = new Object(); // 创建空对象
   result.__proto__ = func.prototype // 第二条,继承原型上的属性或方法
-  func.apply(result, args) //将构造函数func的this指向result对象，这样result就可以访问到func中的属性或方法
+  let res = func.apply(result, args) //将构造函数func的this指向result对象，这样result就可以访问到func中的属性或方法
   if(typeof res === 'object') return res;
-  return obj;
+  return result;
 }
 ```
 
